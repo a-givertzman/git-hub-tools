@@ -1,6 +1,5 @@
 import json
 
-
 #
 # Reads token from text file
 def loadToken(path) -> str:

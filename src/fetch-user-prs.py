@@ -1,9 +1,6 @@
 import datetime
 from functools import reduce
-from pprint import pprint
 from dateutil import parser
-import requests
-import json
 from file_tools import loadJson, loadToken
 from pagination import fetchPaginated
 

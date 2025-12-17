@@ -1,5 +1,6 @@
 import datetime
 from functools import reduce
+import re
 from dateutil import parser
 from file_tools import loadJson, loadToken
 from pagination import fetchPaginated
@@ -24,13 +25,15 @@ class ReportSettings:
         self.sort = sort
         self.groupBy = groupBy
 class PullRequest:
-    def __init__(self, number: str, state: str, title: str, url: str) -> None:
-        self.number = number
-        self.state = state
-        self.title = title
-        self.url = url
+    # def __init__(self, number: str, state: str, repoName: str, title: str, url: str) -> None:
+    def __init__(self, pr: dict) -> None:
+        self.number = pr.get('number', 0)
+        self.state = pr.get('state', 'get pr.state err')
+        self.repoName = pr.get('head', 'get pr.head err').get('repo', 'get pr.head.repo err').get('name', 'get pr.head.repo.name err')
+        self.title = re.sub(r"/\r?\n/", ' | ', pr.get('title', 'get pr.title err'))
+        self.url = pr.get('html_url', 'get pr.html_url err')
     def __str__(self) -> str:
-        return f"PR {self.number} ;\t {self.state} ;\t {self.title} ;\t {self.url}"
+        return f"PR {self.number} ;\t {self.state} ;\t {self.repoName} ;\t {self.title} ;\t {self.url}"
 class Commit:
     def __init__(self, index: int, pr: PullRequest, date: str, comment: str) -> None:
         self.index = index
@@ -40,7 +43,7 @@ class Commit:
     def __str__(self) -> str:
         # print(f"\tPR {pr['number']} ; {pr['state']}; \t title: {pr['title']}; \t url: {pr['html_url']}")
         # print(f"\t\tCommit {i} ; date: {commit['commit']['author']['date']}; \t comment: {commit['commit']['message']}")
-        return f"Commit {self.index} ;\t {self.pr.title} ;\t {self.date} ;\t {self.comment}"
+        return f"Commit {self.index} ;\t {self.pr.repoName} ;\t {self.pr.title} ;\t {self.date} ;\t {self.comment}"
 
 
 if __name__ == '__main__':
@@ -56,7 +59,7 @@ if __name__ == '__main__':
     sort = 'full_name'
     direction = 'asc'
     page = ''
-    since = '2025-06-01T00:00:00Z'
+    since = '2025-11-01T00:00:00Z'
     until = '2025-12-31T00:00:00Z'
     sinceDatetime = parser.parse(since)
     untilDatetime = parser.parse(until) + datetime.timedelta(days=1)
@@ -171,29 +174,28 @@ if __name__ == '__main__':
     # pprint(users)
     if users:
         if report.groupBy == ReportGroupBy.User:
-            if report.sort == ReportSort.Date:
-                for user, userPrs in users.items():
-                    print(f'\nAuthor: {user}')
-                    commits: list[Commit] = []
-                    for _, userPr in userPrs.items():
-                        pr = userPr['pr']
-                        if 'commits' in userPr:
-                            pr = PullRequest(pr['number'], pr['state'], pr['title'], pr['html_url'])
-                            for i, commit in enumerate(userPr['commits']):
-                                commits.append(
-                                    Commit(
-                                        index=i,
-                                        pr=pr,
-                                        date=commit['commit']['author']['date'],
-                                        comment=commit['commit']['message'],
-                                    )
+            for user, userPrs in users.items():
+                print(f'\nAuthor: {user}')
+                commits: list[Commit] = []
+                for _, userPr in userPrs.items():
+                    pr = userPr['pr']
+                    if 'commits' in userPr:
+                        # pr = PullRequest(pr['number'], pr['state'], pr['head']['repo']['name'], pr['title'], pr['html_url'])
+                        pr = PullRequest(pr)
+                        for i, commit in enumerate(userPr['commits']):
+                            commits.append(
+                                Commit(
+                                    index=i,
+                                    pr=pr,
+                                    date=commit['commit']['author']['date'],
+                                    comment=commit['commit']['message'],
                                 )
+                            )
+                if report.sort == ReportSort.Date:
                     commits.sort(key=lambda c: c.date)
                     for c in commits:
                         print(c)
-            else:
-                for user, userPrs in users.items():
-                    print(f'\nAuthor: {user}')
+                else:
                     for _, userPr in userPrs.items():
                         pr = userPr['pr']
                         if 'commits' in userPr:

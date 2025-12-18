@@ -1,0 +1,15 @@
+[package]
+name = "git-hub-tools"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+log = "~0.4"
+env_logger = "~0.11"
+
+sal-core = { tag = "0.1.0", git = "https://github.com/a-givertzman/rust-sal-core.git" }
+sal-sync = { tag = "0.3.0", git = "https://github.com/a-givertzman/rust-sal-sync.git" }
+debugging = { tag = "0.1.0", git = "https://github.com/a-givertzman/rust-debuging.git" }
+
+iced = "~0.14"
+octorust = "~0.10"

@@ -1,10 +1,12 @@
-use iced::Length::Fill;
-use iced::widget::{button, container, text};
+mod infrostruct;
+mod presentation;
 use iced::{Element, Task, Theme};
 
-use crate::contacts::Contacts;
-use crate::conversation::Conversation;
-use crate::github::Report;
+use crate::presentation::{
+    Contacts, contacts,
+    Conversation, conversation,
+    Report, report,
+};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     iced::application(new, update, view)
@@ -20,17 +22,37 @@ fn new() -> State {
 
 fn update(state: &mut State, message: Message) -> Task<Message> {
     match message {
+        Message::Increment => {
+            state.count += 1;
+            Task::none()
+        }
+        Message::Report(message) => {
+            match message {
+                report::Message::FetchReport => Task::perform(
+                    fetch_weather(),
+                    report::Message::ReportFetched,
+                ),
+                report::Message::ReportFetched(weather) => {
+                    state.page = Some(weather);
+                    Task::none()
+               }
+            }
+            if let Page::Report(report) = &mut state.page {
+                report.update(message).map(Message::Report)
+            } else {
+                Task::none()    
+            }
+        }
         Message::Contacts(message) => {
-            if let Screen::Contacts(contacts) = &mut state.screen {
+            if let Page::Contacts(contacts) = &mut state.page {
                 let action = contacts.update(message);
-
                 match action {
                     contacts::Action::None => Task::none(),
                     contacts::Action::Run(task) => task.map(Message::Contacts),
                     contacts::Action::Chat(contact) => {
                         let (conversation, task) = Conversation::new(contact);
 
-                        state.screen = Screen::Conversation(conversation);
+                        state.page = Page::Conversation(conversation);
 
                         task.map(Message::Conversation)
                     }
@@ -40,65 +62,25 @@ fn update(state: &mut State, message: Message) -> Task<Message> {
             }
         }
         Message::Conversation(message) => {
-            if let Screen::Conversation(conversation) = &mut state.screen {
+            if let Page::Conversation(conversation) = &mut state.page {
                 conversation.update(message).map(Message::Conversation)
             } else {
                 Task::none()    
             }
         }
     }
-    // match message {
-    //     Message::Increment => state.count += 1,
-    //     Message::FetchWeather => Task::perform(
-    //         fetch_weather(),
-    //         Message::WeatherFetched,
-    //     ),
-    //     Message::WeatherFetched(weather) => {
-    //         state.weather = Some(weather);
-    //         Task::none()
-    //    }
-    // }
 }
 
 fn view(state: &State) -> Element<'_, Message> {
-    container(
-        column![
-            "Top",
-            row!["Left", "Right"].spacing(10),
-            "Bottom"
-        ]
-        .spacing(10)
-    )
-    .padding(10)
-    .center_x(Fill)
-    .center_y(Fill)
-    .into()
+    match &state.page {
+        Page::Report(report) => report.view().map(Message::Report),
+        Page::Contacts(contacts) => contacts.view().map(Message::Contacts),
+        Page::Conversation(conversation) => conversation.view().map(Message::Conversation),
+    }
 }
 
 fn theme(state: &State) -> Theme {
     Theme::TokyoNight
-}
-pub mod github {
-    #[derive(Debug, Clone)]
-    pub enum Message {
-        FetchWeather,
-        WeatherFetched(Weather),
-    }
-    #[derive(Debug, Clone)]
-    pub struct Weather {}
-    pub struct Report {}
-}
-pub mod contacts {
-    #[derive(Debug, Clone)]
-    pub struct Contacts {}
-    #[derive(Debug, Clone)]
-    pub struct Message {}
-}
-pub mod conversation {
-    #[derive(Debug, Clone)]
-    pub struct Conversation {}
-    #[derive(Debug, Clone)]
-    pub struct Message {}
 }
 struct State {
     count: u64,
@@ -122,6 +104,7 @@ impl Default for State {
 #[derive(Debug, Clone)]
 enum Message {
     Increment,
+    Report(report::Message),
     Contacts(contacts::Message),
     Conversation(conversation::Message)
 }

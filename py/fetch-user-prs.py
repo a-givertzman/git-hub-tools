@@ -59,8 +59,8 @@ if __name__ == '__main__':
     sort = 'full_name'
     direction = 'asc'
     page = ''
-    since = '2025-11-01T00:00:00Z'
-    until = '2025-12-31T00:00:00Z'
+    since = '2026-01-01T00:00:00Z'
+    until = '2026-12-31T00:00:00Z'
     sinceDatetime = parser.parse(since)
     untilDatetime = parser.parse(until) + datetime.timedelta(days=1)
     print(f'from: {sinceDatetime} to {untilDatetime}')
@@ -71,10 +71,11 @@ if __name__ == '__main__':
     ]
     url = f'https://api.github.com/user/repos'
     url = reduce(lambda url, arg: f'{url}{arg}', args, url)
-    uToken = loadToken('src/token.key')
+    uToken = loadToken('token.key')
 
-    excludeRepos = loadJson('src/fetch-repos-exclude.json') or []
+    excludeRepos = loadJson('fetch-repos-exclude.json') or []
     excludeRepos = list(map(lambda e: e['name'], excludeRepos))
+    # excludeRepos = []
 
     print(f'\n- Repos to be ignored: {excludeRepos}')
 
@@ -97,6 +98,19 @@ if __name__ == '__main__':
     )
 
     users = {}
+    print('\n- Repositories:')
+    for repo in repos:
+        if not repo['full_name'] in excludeRepos:
+            args = [
+                # '?per_page=100',
+                # '&page=1',
+            ]
+            owner = 'a-givertzman'
+            repo = repo['name']
+            url = f'https://api.github.com/repos/{owner}/{repo}/pulls'
+            url = reduce(lambda url, arg: f'{url}{arg}', args, url)
+            print(f'\t- {repo}  |  url: {url}')
+
     print('\n- Repositories:')
     for repo in repos:
         if not repo['full_name'] in excludeRepos:

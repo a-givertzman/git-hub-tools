@@ -18,7 +18,7 @@ def loadToken(path) -> str:
 # Reads json file, returns content
 def loadJson(path) -> str:
     try:
-        with open('src/fetch-repos-exclude.json', 'r') as file:
+        with open(path, 'r') as file:
             jsonValue = json.load(file)
             # print(f'jsonValue: {jsonValue}')
             if jsonValue:
